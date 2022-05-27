@@ -1,0 +1,15 @@
+__pycache__/
+*.pyo
+*.pyc
+/etc
+*.zip
+output/
+tmp/
+*.json
+*.log
+false/
+chrome/
+captcha/
+data/
+*.jpg
+chrome_data/
