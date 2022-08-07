@@ -81,12 +81,15 @@ class SiteNaverBook(SiteNaver):
             if type(tmp) == type({}):
                 tmp = [tmp]
             for idx, item in enumerate(tmp):
-                #logger.debug(d(item))
+                logger.debug(d(item))
                 
                 entity = {}
-                entity['code'] = 'BN' + item['link'].split('bid=')[1]
+                #entity['code'] = 'BN' + item['link'].split('bid=')[1]
+                entity['code'] = 'BN' + item['link'].split('/')[-1]
                 entity['title'] = item['title'].replace('<b>', '').replace('</b>', '')
                 entity['image'] = item['image']
+                entity['pubdate'] = item['pubdate']
+
                 try:
                     entity['author'] = item['author'].replace('<b>', '').replace('</b>', '')
                 except:

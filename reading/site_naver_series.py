@@ -27,17 +27,19 @@ class SiteNaverSeries():
     def search(cls, title, auth=''):
 
         url = f"https://series.naver.com/search/search.series?t=all&fs=default&q={quote(title)}"
+        logger.error(url)
         text = requests.get(url, headers=default_headers).text
         root = lxml.html.fromstring(text)
 
         tags = root.xpath('//ul[@class="lst_list"]/li')
-        #logger.error(tags)
+        logger.error(tags)
         ret = []
 
         for tag in tags:
             entity = {}
             entity['code'] = tag.xpath('.//a')[0].attrib['href']
             tmp = None
+            logger.debug(d(entity))
             if '/novel/' in entity['code']:
                 tmp = 'nov'
             elif '/comic/' in entity['code']:
@@ -45,7 +47,8 @@ class SiteNaverSeries():
             if tmp != None:
                 
                 entity['title'] = tag.xpath('.//a[@class="N=a:%s.title"]' % tmp)[0].text_content().replace('\n', '').replace('\t', '')
-                entity['author'] = tag.xpath('.//span[@class="ellipsis"]')[0].text_content().replace('\n', '').replace('\t', '')
+                logger.debug(d(entity))
+                entity['author'] = tag.xpath('.//span[@class="author"]')[0].text_content().replace('\n', '').replace('\t', '')
                 
                 ret.append(entity)
         return ret

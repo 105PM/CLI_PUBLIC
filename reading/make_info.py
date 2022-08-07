@@ -245,13 +245,20 @@ class MakeInfo:
             
             if info == None:
                 logger.error("책 정보 가져올수 없음")
-                info = {}
-                info['title'] = re.sub('\s\d+$', '', select_item['title']).strip()
-                info['poster'] = select_item['image'].split('?')[0]
-                info['desc'] = select_item['description']
-                info['publisher'] = select_item['publisher']
-                info['premiered'] = select_item['image'].split('date=')[1]
-                info['author'] = select_item['author']
+                logger.debug(d(select_item))
+                try:
+                    info = {}
+                    info['title'] = re.sub('\s\d+$', '', select_item['title']).strip()
+                    info['poster'] = select_item['image'].split('?')[0]
+                    info['desc'] = select_item['description']
+                    info['publisher'] = select_item['publisher']
+                    #info['premiered'] = select_item['image'].split('date=')[1]
+                    info['premiered'] = select_item['pubdate']
+                    info['author'] = select_item['author']
+                    logger.debug(info)
+                except Exception as exception:
+                    logger.error('Exception:%s', exception)
+                    logger.error(traceback.format_exc())
             return info
 
         elif self.config['meta_source'] == 'naverseries':

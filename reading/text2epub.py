@@ -1,4 +1,5 @@
 import os, sys, traceback, json, urllib.parse, requests, argparse, platform
+from tkinter import E
 import xmltodict, shutil
 from datetime import datetime
 if platform.system() == 'Windows':
@@ -9,7 +10,6 @@ from support.base import get_logger, d, default_headers, SupportFile
 from support.base.discord import SupportDiscord
 
 
-from lib_wvtool.ffmpeg import Ffmpeg
 logger = get_logger()
 
 class Text2Epub:
@@ -198,6 +198,8 @@ class Text2Epub:
 
         original_templete_folderpath = os.path.join(os.path.dirname(__file__), 'epub_templete', 'COPY')
         shutil.copytree(original_templete_folderpath, templete_folderpath)
+        os.makedirs(os.path.join(templete_folderpath, 'OEBPS', 'Text'), exist_ok=True)
+        os.makedirs(os.path.join(templete_folderpath, 'OEBPS', 'Images'), exist_ok=True)
         return templete_folderpath
 
 

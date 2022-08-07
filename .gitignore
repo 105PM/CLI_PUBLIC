@@ -13,3 +13,5 @@ captcha/
 data/
 *.jpg
 chrome_data/
+config.yaml
+gscan/
