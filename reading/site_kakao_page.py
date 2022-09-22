@@ -3,7 +3,7 @@ import os, sys, traceback, json, urllib.parse, requests, argparse, yaml, platfor
 import traceback, unicodedata
 from datetime import datetime
 import urllib.request as py_urllib2
-import urllib.parse as py_urllib #urlencode
+import urllib.parse as py_urllib  # urlencode
 
 from lxml import html, etree
 import xmltodict
@@ -14,34 +14,40 @@ else:
     sys.path += ["/root/SJVA3/lib2", "/root/SJVA3/data/custom", '/root/SJVA3_DEV']
 
 from support.base import get_logger, d, default_headers, SupportFile, SupportString
+
 logger = get_logger()
 from urllib.parse import quote
 import lxml.html
 from lxml import etree
 import re
-from collections import OrderedDict 
-
+from collections import OrderedDict
 
 
 class SiteKakaoPage():
     @classmethod
     def search(cls, title, auth=''):
         try:
-            url = f"https://page.kakao.com/search?word={quote(title)}"
-            text = requests.get(url, headers=default_headers).text
-            root = lxml.html.fromstring(text)
-            tags = root.xpath('//*[@id="root"]/div[3]/div/div/div[2]/div')
-            #logger.error(tags)
+            url = f"https://page.kakao.com/graphql"
+            data = {
+                "query": "query SearchKeyword($input: SearchKeywordInput!) {\n  searchKeyword(searchKeywordInput: $input) {\n    id\n    list {\n      ...NormalListViewItem\n      __typename\n    }\n    total\n    isEnd\n    keyword\n    sortOptionList {\n      ...SortOption\n      __typename\n    }\n    selectedSortOption {\n      ...SortOption\n      __typename\n    }\n    categoryOptionList {\n      ...SortOption\n      __typename\n    }\n    selectedCategoryOption {\n      ...SortOption\n      __typename\n    }\n    showOnlyComplete\n    __typename\n  }\n}\n\nfragment NormalListViewItem on NormalListViewItem {\n  id\n  type\n  ticketUid\n  thumbnail\n  badgeList\n  ageGradeBadge\n  ageGrade\n  isAlaramOn\n  row1\n  row2\n  row3 {\n    id\n    metaList\n    __typename\n  }\n  row4\n  row5\n  scheme\n  continueScheme\n  nextProductScheme\n  continueData {\n    ...ContinueInfoFragment\n    __typename\n  }\n  torosImpId\n  torosFileHashKey\n  seriesId\n  isCheckMode\n  isChecked\n  isReceived\n  showPlayerIcon\n  rank\n  isSingle\n  singleSlideType\n  ageGrade\n  eventLog {\n    ...EventLogFragment\n    __typename\n  }\n  giftEventLog {\n    ...EventLogFragment\n    __typename\n  }\n}\n\nfragment ContinueInfoFragment on ContinueInfo {\n  title\n  isFree\n  productId\n  lastReadProductId\n  scheme\n  continueProductType\n}\n\nfragment EventLogFragment on EventLog {\n  click {\n    layer1\n    layer2\n    setnum\n    ordnum\n    copy\n    imp_id\n    imp_provider\n    __typename\n  }\n  eventMeta {\n    id\n    name\n    subcategory\n    category\n    series\n    provider\n    series_id\n    type\n    __typename\n  }\n  viewimp_contents {\n    type\n    name\n    id\n    imp_area_ordnum\n    imp_id\n    imp_provider\n    imp_type\n    layer1\n    layer2\n    __typename\n  }\n  customProps {\n    landing_path\n    view_type\n    toros_imp_id\n    toros_file_hash_key\n    toros_event_meta_id\n    content_cnt\n    event_series_id\n    event_ticket_type\n    play_url\n    __typename\n  }\n}\n\nfragment SortOption on SortOption {\n  id\n  name\n  param\n}\n",
+                "operationName": "SearchKeyword",
+                "variables": {
+                    "input": {
+                        "page": 0,
+                        "size": 25,
+                        "keyword": title
+                    }
+                }
+            }
+            kakao_headers = default_headers
+            kakao_headers['content-type'] = 'application/json'
+            res = requests.post(url, data=json.dumps(data), headers=kakao_headers).json()['data']['searchKeyword']['list']
             ret = []
-            for tag in tags:
+            for book in res:
                 entity = {}
-                entity['code'] = tag.xpath('.//a')[0].attrib['href']
-                entity['title'] = tag.xpath('.//div/a/div[2]/div[1]/span')[0].text_content()
-                tmps = tag.xpath('.//div/a/div[2]/div[2]/div[1]/div')
-                text = []
-                for tmp in tmps:
-                    text.append(tmp.text_content())
-                entity['author'] = ' '.join(text)
+                entity['code'] = book['eventLog']['eventMeta']['id']
+                entity['title'] = book['row1']
+                entity['author'] = book['row2'][2]
                 ret.append(entity)
             return ret
         except:
@@ -50,14 +56,14 @@ class SiteKakaoPage():
     @classmethod
     def info(cls, code):
         try:
-            #url = f"https://page.kakao.com{code}"
-            #text = requests.get(url, headers=default_headers).text
-            #root = lxml.html.fromstring(text)
-            seriesid = code.split('seriesId=')[1]
+            # url = f"https://page.kakao.com{code}"
+            # text = requests.get(url, headers=default_headers).text
+            # root = lxml.html.fromstring(text)
+            seriesid = code
             url = f"https://api2-page.kakao.com/api/v4/store/seriesdetail?seriesid={seriesid}"
             data = {'seriesid': seriesid}
             data = requests.post(url, headers=default_headers, data=data).json()
-            #logger.debug(d(data))
+            # logger.debug(d(data))
             ret = {}
             for tmp in data['authors_other']:
                 if str(tmp['id']) == seriesid:
@@ -66,7 +72,7 @@ class SiteKakaoPage():
 
             ret['title'] = data['seriesdetail']['title']
             ret['desc'] = data['seriesdetail']['description']
-            #ret['poster'] = 'https:' + root.xpath('//*[@id="root"]/div[3]/div/div/div[1]/div[1]/div[1]/img')[0].attrib['src'].split('&')[0]
+            # ret['poster'] = 'https:' + root.xpath('//*[@id="root"]/div[3]/div/div/div[1]/div[1]/div[1]/img')[0].attrib['src'].split('&')[0]
             ret['author'] = data['seriesdetail']['author_name']
             ret['publisher'] = data['seriesdetail']['publisher_name']
             ret['tag'] = ['카카오페이지']
@@ -75,7 +81,6 @@ class SiteKakaoPage():
         except Exception as exception:
             logger.error('Exception:%s', exception)
             logger.error(traceback.format_exc())
-       
 
 
 if __name__ == '__main__':
@@ -83,6 +88,3 @@ if __name__ == '__main__':
     logger.debug(d(data))
     data = SiteKakaoPage.info(data[0]['code'])
     logger.debug(d(data))
-
-
-
