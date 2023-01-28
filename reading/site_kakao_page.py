@@ -60,23 +60,32 @@ class SiteKakaoPage():
             # text = requests.get(url, headers=default_headers).text
             # root = lxml.html.fromstring(text)
             seriesid = code
-            url = f"https://api2-page.kakao.com/api/v4/store/seriesdetail?seriesid={seriesid}"
-            data = {'seriesid': seriesid}
-            data = requests.post(url, headers=default_headers, data=data).json()
-            # logger.debug(d(data))
             ret = {}
-            for tmp in data['authors_other']:
-                if str(tmp['id']) == seriesid:
-                    ret['poster'] = f"https://dn-img-page.kakao.com/download/resource?kid={tmp['image_url']}"
-                    ret['premiered'] = tmp['create_dt'].split(' ')[0].replace('-', '')
 
-            ret['title'] = data['seriesdetail']['title']
-            ret['desc'] = data['seriesdetail']['description']
-            # ret['poster'] = 'https:' + root.xpath('//*[@id="root"]/div[3]/div/div/div[1]/div[1]/div[1]/img')[0].attrib['src'].split('&')[0]
-            ret['author'] = data['seriesdetail']['author_name']
-            ret['publisher'] = data['seriesdetail']['publisher_name']
+            url = f"https://page.kakao.com/_next/data/2.5.3/content/{seriesid}.json"
+            data = requests.get(url, headers=default_headers).json()
+            ret['title'] = data['pageProps']['metaInfo']['ogTitle']
+            ret['poster'] = f"https:{data['pageProps']['metaInfo']['image'].split('&')[0]}"
+            ret['desc'] = data['pageProps']['metaInfo']['description']
+            ret['author'] = data['pageProps']['metaInfo']['author']
+            ret['publisher'] = data['pageProps']['initialState']['json']['contentHome']['fetching']['about'][seriesid]['data']['detail']['publisherName']
+
+            url = f"https://page.kakao.com/graphql"
+            query = {
+                "query": "query contentHomeOverview($seriesId: Long!) {\n  contentHomeOverview(seriesId: $seriesId) {\n    id\n    seriesId\n    displayAd {\n      ...DisplayAd\n      ...DisplayAd\n      __typename\n    }\n    content {\n      ...SeriesFragment\n      __typename\n    }\n    displayAd {\n      ...DisplayAd\n      __typename\n    }\n    relatedKeytalk {\n      id\n      categoryUid\n      groupUid\n      groupType\n      name\n      order\n      __typename\n    }\n    lastNoticeDate\n    __typename\n  }\n}\n\nfragment DisplayAd on DisplayAd {\n  sectionUid\n  bannerUid\n  treviUid\n  momentUid\n}\n\nfragment SeriesFragment on Series {\n  id\n  seriesId\n  title\n  thumbnail\n  categoryUid\n  category\n  subcategoryUid\n  subcategory\n  badge\n  isAllFree\n  isWaitfree\n  isWaitfreePlus\n  is3HoursWaitfree\n  ageGrade\n  state\n  onIssue\n  seriesType\n  businessModel\n  authors\n  pubPeriod\n  freeSlideCount\n  lastSlideAddedDate\n  waitfreeBlockCount\n  waitfreePeriodByMinute\n  bm\n  saleState\n  serviceProperty {\n    ...ServicePropertyFragment\n    __typename\n  }\n  operatorProperty {\n    ...OperatorPropertyFragment\n    __typename\n  }\n  assetProperty {\n    ...AssetPropertyFragment\n    __typename\n  }\n}\n\nfragment ServicePropertyFragment on ServiceProperty {\n  viewCount\n  readCount\n  ratingCount\n  ratingSum\n  commentCount\n  pageContinue {\n    ...ContinueInfoFragment\n    __typename\n  }\n  todayGift {\n    ...TodayGift\n    __typename\n  }\n  waitfreeTicket {\n    ...WaitfreeTicketFragment\n    __typename\n  }\n  isAlarmOn\n  isLikeOn\n  ticketCount\n  purchasedDate\n  lastViewInfo {\n    ...LastViewInfoFragment\n    __typename\n  }\n  purchaseInfo {\n    ...PurchaseInfoFragment\n    __typename\n  }\n}\n\nfragment ContinueInfoFragment on ContinueInfo {\n  title\n  isFree\n  productId\n  lastReadProductId\n  scheme\n  continueProductType\n  hasNewSingle\n  hasUnreadSingle\n}\n\nfragment TodayGift on TodayGift {\n  id\n  uid\n  ticketType\n  ticketKind\n  ticketCount\n  ticketExpireAt\n  isReceived\n}\n\nfragment WaitfreeTicketFragment on WaitfreeTicket {\n  chargedPeriod\n  chargedCount\n  chargedAt\n}\n\nfragment LastViewInfoFragment on LastViewInfo {\n  isDone\n  lastViewDate\n  rate\n  spineIndex\n}\n\nfragment PurchaseInfoFragment on PurchaseInfo {\n  purchaseType\n  rentExpireDate\n}\n\nfragment OperatorPropertyFragment on OperatorProperty {\n  thumbnail\n  copy\n  torosImpId\n  torosFileHashKey\n  isTextViewer\n}\n\nfragment AssetPropertyFragment on AssetProperty {\n  bannerImage\n  cardImage\n  cardTextImage\n  cleanImage\n  ipxVideo\n}\n",
+                "operationName": "contentHomeOverview",
+                "variables": {
+                    "seriesId": seriesid
+                }
+            }
+            kakao_headers = default_headers
+            kakao_headers['content-type'] = 'application/json'
+            data = requests.post(url, data=json.dumps(query), headers=kakao_headers).json()
+            # logger.debug(d(data))
+
+            ret['premiered'] = data['data']['contentHomeOverview']['content']['lastSlideAddedDate'].split('T')[0].replace('-','')
             ret['tag'] = ['카카오페이지']
-            ret['genre'] = data['seriesdetail']['sub_category']
+            ret['genre'] = data['data']['contentHomeOverview']['content']['subcategory']
             return ret
         except Exception as exception:
             logger.error('Exception:%s', exception)
@@ -84,7 +93,7 @@ class SiteKakaoPage():
 
 
 if __name__ == '__main__':
-    data = SiteKakaoPage.search('악녀를 죽여 줘')
+    data = SiteKakaoPage.search('0레벨 플레이어')
     logger.debug(d(data))
     data = SiteKakaoPage.info(data[0]['code'])
     logger.debug(d(data))
